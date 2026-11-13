@@ -1,0 +1,39 @@
+# Environments
+.env
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node / React
+node_modules/
+frontend/node_modules/
+gnani-collections-agent/frontend/node_modules/
+dist/
+frontend/dist/
+gnani-collections-agent/frontend/dist/
+.DS_Store
+*.log

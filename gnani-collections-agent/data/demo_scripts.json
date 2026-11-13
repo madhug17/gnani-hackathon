@@ -1,0 +1,97 @@
+[
+  {
+    "scenario_id": "SCENARIO_1_SARCASM",
+    "title": "Stage 1: Code-Switched Sarcasm Detection",
+    "description": "Borrower speaks polite/agreeable words ('Haan haan, bilkul, I will pay tomorrow') with heavy acoustic irritation and cynicism. The dual-stream fusion detects prosodic tension, flags sarcasm_detected: true, and switches to [calm_empathetic] timbre rather than taking the literal agreement.",
+    "borrower_id": "LN-98231",
+    "turns": [
+      {
+        "speaker": "bot",
+        "text": "Namaste Rahul ji, main Axis Premier Finance se bol raha hoon. Aapke Personal Loan account par ₹24,500 overdue chal raha hai. Kya hum aaj payment process kar sakte hain?"
+      },
+      {
+        "speaker": "borrower",
+        "audio_sample_tag": "sarcastic_agree",
+        "text": "Haan haan, bilkul! Main abhi ke abhi saare paise bhar deta hoon na! Jaise mere ghar pe ped pe ugte hain paise. Haan bhai, salary credit nahi hui, but sure, fine, whatever!",
+        "simulated_acoustic": {
+          "pitch_variance": 78.5,
+          "energy_db": -12.4,
+          "speech_rate_wpm": 185,
+          "acoustic_emotion": "frustrated",
+          "acoustic_confidence": 0.88
+        },
+        "expected_fusion": {
+          "emotion": "frustrated",
+          "sarcasm_detected": true,
+          "speech_rate": "fast",
+          "timbre_tag": "[calm_empathetic]"
+        }
+      },
+      {
+        "speaker": "bot",
+        "text": "Rahul ji, I completely understand salary delay ho sakti hai. Please stress mat lijiye. Agar aap poora amount nahi de sakte, to kya hum late fee ₹2,400 waive karke split EMI setup karein?"
+      }
+    ]
+  },
+  {
+    "scenario_id": "SCENARIO_2_BARGE_IN",
+    "title": "Stage 2: Sub-300ms Barge-In & Interruption Handling",
+    "description": "Bot starts explaining standard repayment clauses; borrower abruptly cuts in ('Arre ruko ek minute, meri baat suno pehle!'). Silero VAD fires within 40ms, FLUSH_AUDIO clears browser playback queue under 180ms, and state cleanly resets to LISTENING with [INTERRUPTED] recorded.",
+    "borrower_id": "LN-98231",
+    "turns": [
+      {
+        "speaker": "bot",
+        "text": "RBI guidelines ke hisaab se agar consecutive do EMIs bounce hoti hain to legal recovery procedures aur credit score par negative impact...",
+        "interrupted_at_word": "legal",
+        "partial_text": "RBI guidelines ke hisaab se agar consecutive do EMIs bounce hoti hain to..."
+      },
+      {
+        "speaker": "borrower",
+        "text": "Arre ruko ruko! Ek minute meri baat suno pehle! Hospital emergency thi isliye miss hua, aap notice ki dhamki mat do!",
+        "is_interruption": true,
+        "vad_trigger_time_ms": 38,
+        "flush_audio_time_ms": 142,
+        "expected_fusion": {
+          "emotion": "stressed",
+          "sarcasm_detected": false,
+          "interrupted": true,
+          "timbre_tag": "[reassuring]"
+        }
+      },
+      {
+        "speaker": "bot",
+        "text": "I am so sorry Rahul ji, health emergency sabse pehle hai. Please take care. Hamara maksad pareshan karna nahi hai, bas aapki madad karna hai."
+      }
+    ]
+  },
+  {
+    "scenario_id": "SCENARIO_3_ESCALATION",
+    "title": "Stage 3: Frustration Escalation to Gnani Assist Handoff",
+    "description": "Borrower exhibits persistent high frustration (>2 turns) and demands a human supervisor. The bot triggers Gnani Assist sub-500ms handoff, generating a structured JSON Handoff Card with emotional trajectory and recommended action.",
+    "borrower_id": "LN-77319",
+    "turns": [
+      {
+        "speaker": "borrower",
+        "text": "Bakwaas band karo! Teesri baar phone kiya hai tum logon ne aaj! Mujhe kisi senior manager se baat karao abhi ke abhi!",
+        "simulated_acoustic": {
+          "pitch_variance": 92.0,
+          "energy_db": -8.1,
+          "acoustic_emotion": "frustrated",
+          "acoustic_confidence": 0.96
+        },
+        "expected_fusion": {
+          "emotion": "frustrated",
+          "sarcasm_detected": false,
+          "speech_rate": "fast",
+          "timbre_tag": "[calm_empathetic]"
+        },
+        "triggers_escalation": true
+      },
+      {
+        "speaker": "bot",
+        "text": "Vikram ji, main bilkul samajh sakta hoon aapki narazgi. Main turant aapki call hamare Senior Collections Specialist ko hand over kar raha hoon. Kripya ek pal hold karein.",
+        "escalation_card_generated": true
+      }
+    ]
+  }
+]
