@@ -153,3 +153,4 @@ Use the **Demo Scenario Quick-Launcher** in the top navigation bar to test all 3
 - Prohibits abusive, threatening, or coercive debt collection tactics.
 - Automatically respects moratorium requests due to verified medical emergencies.
 - Provides cryptographic logging of all interaction timestamps and consent states.
+

@@ -62,3 +62,4 @@ CORE EMPATHETIC GUIDELINES (VOICE FIRST):
 5. **No Robot Disclaimers:** Never say 'As an AI' or 'According to my prompt'. Talk naturally as an empathetic human advisor."""
 
     return prompt
+

@@ -29,6 +29,13 @@ export default function App() {
   const [selectedScenario, setSelectedScenario] = useState(null);
   const [scenarioTurnIndex, setScenarioTurnIndex] = useState(0);
   const [escalationCard, setEscalationCard] = useState(null);
+  const [selectedVoice, setSelectedVoice] = useState('hi_madhur');
+  const [availableVoices, setAvailableVoices] = useState([
+    { id: "hi_madhur", name: "Madhur (Empathetic Hindi/Hinglish Male)" },
+    { id: "hi_swara", name: "Swara (Expressive Hindi/Hinglish Female)" },
+    { id: "en_neerja", name: "Neerja (Professional Indian English Female)" },
+    { id: "en_prabhat", name: "Prabhat (Executive Indian English Male)" }
+  ]);
 
   // WebSocket Ref
   const wsRef = useRef(null);
@@ -130,6 +137,12 @@ export default function App() {
         setBotMode(msg.bot_mode || 'empathetic');
         setCurrentState(msg.state || 'LISTENING');
         if (msg.borrower) setSelectedBorrower(msg.borrower);
+        if (msg.current_voice) setSelectedVoice(msg.current_voice);
+        if (msg.available_voices) setAvailableVoices(msg.available_voices);
+        break;
+
+      case 'VOICE_CHANGED':
+        if (msg.voice) setSelectedVoice(msg.voice);
         break;
 
       case 'AUDIO_CHUNK':
@@ -271,6 +284,14 @@ export default function App() {
     });
   };
 
+  const handleSelectVoice = (voiceId) => {
+    setSelectedVoice(voiceId);
+    sendWebSocketMessage({
+      type: 'SET_VOICE',
+      voice: voiceId
+    });
+  };
+
   const handleResetSession = () => {
     flushAudioPlayback();
     sendWebSocketMessage({
@@ -316,6 +337,8 @@ export default function App() {
         borrowers={borrowers}
         scenarios={scenarios}
         selectedScenario={selectedScenario}
+        selectedVoice={selectedVoice}
+        availableVoices={availableVoices}
         onToggleMic={handleToggleMic}
         onToggleBotMode={handleToggleBotMode}
         onToggleNoise={handleToggleNoise}
@@ -324,6 +347,7 @@ export default function App() {
           setSelectedScenario(sc);
           setScenarioTurnIndex(0);
         }}
+        onSelectVoice={handleSelectVoice}
         onTriggerScenario={handleTriggerScenario}
         onResetSession={handleResetSession}
       />
@@ -408,3 +432,4 @@ export default function App() {
     </div>
   );
 }
+

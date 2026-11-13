@@ -287,25 +287,27 @@ class VoiceAgentSession:
                         "timbre_tag": timbre_tag
                     })
 
-                    # Stream synthesized audio chunks immediately
-                    async for audio_chunk in self.tts.stream_speech(
+                    # Synthesize clean, high-fidelity MP3 sentence container
+                    sentence_audio = await self.tts.synthesize_sentence(
                         text=sentence_text,
                         timbre_tag=timbre_tag
-                    ):
-                        if self.state != "SPEAKING":
-                            break
+                    )
 
+                    if self.state != "SPEAKING":
+                        break
+
+                    if sentence_audio:
                         if not first_audio_marked:
                             self.metrics.record_first_audio_chunk(self.turn_start_timestamp)
                             first_audio_marked = True
 
-                        if audio_chunk:
-                            chunk_b64 = base64.b64encode(audio_chunk).decode("ascii")
-                            await self.send_json({
-                                "type": "AUDIO_CHUNK",
-                                "audio_base64": chunk_b64,
-                                "timbre_tag": timbre_tag
-                            })
+                        chunk_b64 = base64.b64encode(sentence_audio).decode("ascii")
+                        await self.send_json({
+                            "type": "AUDIO_CHUNK",
+                            "audio_base64": chunk_b64,
+                            "timbre_tag": timbre_tag,
+                            "text": sentence_text
+                        })
 
             # Record final bot turn in history if not interrupted
             if self.state == "SPEAKING" and self.current_bot_utterance:
@@ -340,7 +342,14 @@ async def websocket_audio_endpoint(websocket: WebSocket):
         "session_id": session.session_id,
         "borrower": active_borrower,
         "bot_mode": session.bot_mode,
-        "state": session.state
+        "state": session.state,
+        "current_voice": "hi_madhur",
+        "available_voices": [
+            {"id": "hi_madhur", "name": "Madhur (Empathetic Hindi/Hinglish Male)"},
+            {"id": "hi_swara", "name": "Swara (Expressive Hindi/Hinglish Female)"},
+            {"id": "en_neerja", "name": "Neerja (Professional Indian English Female)"},
+            {"id": "en_prabhat", "name": "Prabhat (Executive Indian English Male)"}
+        ]
     })
     await session.broadcast_state("LISTENING")
 
@@ -399,6 +408,12 @@ async def websocket_audio_endpoint(websocket: WebSocket):
                 logger.info(f"Switched Bot Mode to: {new_mode}")
                 await session.send_json({"type": "BOT_MODE_CHANGED", "mode": new_mode})
 
+            elif msg_type == "SET_VOICE":
+                new_voice = data.get("voice", "hi_madhur")
+                session.tts.set_voice(new_voice)
+                logger.info(f"Switched TTS Voice to: {new_voice}")
+                await session.send_json({"type": "VOICE_CHANGED", "voice": new_voice})
+
             elif msg_type == "SIMULATE_NOISE":
                 enabled = bool(data.get("enabled", False))
                 session.noise_simulation_active = enabled
@@ -421,3 +436,4 @@ async def websocket_audio_endpoint(websocket: WebSocket):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.main:app", host=settings.HOST, port=settings.PORT, reload=True)
+

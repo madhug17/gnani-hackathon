@@ -134,3 +134,4 @@ class CodeSwitchedSTT:
                 data = resp.json()
                 return data.get("transcript") or data.get("text")
         return None
+

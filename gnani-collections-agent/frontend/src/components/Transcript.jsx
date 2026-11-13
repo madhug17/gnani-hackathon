@@ -139,3 +139,4 @@ export default function Transcript({ messages = [], toolCalls = [] }) {
     </div>
   );
 }
+

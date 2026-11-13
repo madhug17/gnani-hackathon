@@ -125,3 +125,4 @@ class SessionMetrics:
             "speech_rate": curr.speech_rate if curr else "normal",
             "interrupted": curr.interrupted if curr else False
         }
+

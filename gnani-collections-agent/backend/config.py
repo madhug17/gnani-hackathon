@@ -46,3 +46,4 @@ class Settings:
     DEMO_SCRIPTS_PATH: Path = DATA_DIR / "demo_scripts.json"
 
 settings = Settings()
+

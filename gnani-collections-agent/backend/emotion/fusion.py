@@ -107,3 +107,4 @@ class MultimodalEmotionFusion:
         elif emotion == "cooperative":
             return "[upbeat]"
         return "[neutral]"
+

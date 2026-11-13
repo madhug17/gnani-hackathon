@@ -128,3 +128,4 @@ class VoiceEmotionClassifier:
         elif syllables_per_sec < 2.2:
             return "slow"
         return "normal"
+

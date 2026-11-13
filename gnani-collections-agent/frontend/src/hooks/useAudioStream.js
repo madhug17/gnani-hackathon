@@ -1,8 +1,9 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 
 /**
- * High-performance Web Audio API Hook for bidirectional voice streaming.
+ * Studio-Quality Web Audio API Hook for bidirectional voice streaming.
  * Handles continuous 16kHz PCM capture and instant sub-10ms FLUSH_AUDIO buffer clearing.
+ * Features broadcast dynamics compression, micro-envelope fade transitions, and zero clicks.
  */
 export function useAudioStream(sendWebSocketMessage) {
   const [isRecording, setIsRecording] = useState(false);
@@ -16,21 +17,33 @@ export function useAudioStream(sendWebSocketMessage) {
   
   // Playback queue & Active Source Nodes for instantaneous FLUSH
   const playbackContextRef = useRef(null);
+  const masterCompressorRef = useRef(null);
   const activeSourcesRef = useRef([]);
   const nextPlayTimeRef = useRef(0);
-  const audioQueueRef = useRef([]);
-  const isPlayingRef = useRef(false);
 
   // 8kHz Noise simulator nodes
   const noiseNodeRef = useRef(null);
   const noiseGainRef = useRef(null);
 
-  // Initialize playback AudioContext
+  // Initialize playback AudioContext with studio compressor
   const getPlaybackContext = useCallback(() => {
     if (!playbackContextRef.current || playbackContextRef.current.state === 'closed') {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      playbackContextRef.current = new AudioCtx();
+      const ctx = new AudioCtx();
+
+      // Dynamics Compressor for rich, broadcast-grade speech clarity
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-20, ctx.currentTime);
+      compressor.knee.setValueAtTime(30, ctx.currentTime);
+      compressor.ratio.setValueAtTime(3.5, ctx.currentTime);
+      compressor.attack.setValueAtTime(0.003, ctx.currentTime);
+      compressor.release.setValueAtTime(0.25, ctx.currentTime);
+
+      compressor.connect(ctx.destination);
+      masterCompressorRef.current = compressor;
+      playbackContextRef.current = ctx;
     }
+
     if (playbackContextRef.current.state === 'suspended') {
       playbackContextRef.current.resume();
     }
@@ -38,33 +51,37 @@ export function useAudioStream(sendWebSocketMessage) {
   }, []);
 
   /**
-   * INSTANT SUB-10MS BUFFER FLUSH.
-   * Stops all currently playing AudioBufferSourceNodes and empties the queue.
+   * INSTANT SUB-10MS BUFFER FLUSH (Click-free).
+   * Ramps down active source nodes smoothly in 5ms and empties the queue.
    */
   const flushAudioPlayback = useCallback(() => {
-    // 1. Stop and disconnect every active source node immediately
-    activeSourcesRef.current.forEach((source) => {
+    const ctx = playbackContextRef.current;
+    const now = ctx ? ctx.currentTime : 0;
+
+    activeSourcesRef.current.forEach(({ source, gainNode }) => {
       try {
-        source.stop(0);
-        source.disconnect();
+        if (gainNode && ctx) {
+          gainNode.gain.cancelScheduledValues(now);
+          gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+          gainNode.gain.linearRampToValueAtTime(0.0001, now + 0.005);
+          source.stop(now + 0.006);
+        } else {
+          source.stop(0);
+        }
       } catch (err) {
-        // Node might have already finished
+        // Source already terminated
       }
     });
     activeSourcesRef.current = [];
 
-    // 2. Clear pending queue
-    audioQueueRef.current = [];
-    isPlayingRef.current = false;
-    
-    // 3. Reset playback timing cursor
-    if (playbackContextRef.current) {
-      nextPlayTimeRef.current = playbackContextRef.current.currentTime;
+    // Reset playback timing cursor
+    if (ctx) {
+      nextPlayTimeRef.current = ctx.currentTime;
     }
   }, []);
 
   /**
-   * Enqueues and plays an incoming base64 audio chunk.
+   * Enqueues and plays a complete sentence audio container with studio envelope.
    */
   const enqueueAudioChunk = useCallback(async (base64Audio) => {
     try {
@@ -78,29 +95,48 @@ export function useAudioStream(sendWebSocketMessage) {
         bytes[i] = binaryStr.charCodeAt(i);
       }
 
-      // Decode audio data into AudioBuffer
+      // Decode complete sentence MP3/WAV into AudioBuffer
       const audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
       
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(ctx.destination);
+
+      // Micro envelope gain node to prevent audio pops
+      const gainNode = ctx.createGain();
+      const duration = audioBuffer.duration;
+
+      source.connect(gainNode);
+      if (masterCompressorRef.current) {
+        gainNode.connect(masterCompressorRef.current);
+      } else {
+        gainNode.connect(ctx.destination);
+      }
 
       const currentTime = ctx.currentTime;
-      // Schedule contiguous streaming
       if (nextPlayTimeRef.current < currentTime) {
         nextPlayTimeRef.current = currentTime;
       }
 
-      source.start(nextPlayTimeRef.current);
-      activeSourcesRef.current.push(source);
+      const startTime = nextPlayTimeRef.current;
+      const endTime = startTime + duration;
 
-      nextPlayTimeRef.current += audioBuffer.duration;
+      // Smooth micro-fade in & fade out (4ms)
+      gainNode.gain.setValueAtTime(0.001, startTime);
+      gainNode.gain.linearRampToValueAtTime(1.0, startTime + 0.004);
+      gainNode.gain.setValueAtTime(1.0, Math.max(startTime + 0.004, endTime - 0.004));
+      gainNode.gain.linearRampToValueAtTime(0.001, endTime);
+
+      source.start(startTime);
+      const entry = { source, gainNode };
+      activeSourcesRef.current.push(entry);
+
+      nextPlayTimeRef.current = endTime;
 
       source.onended = () => {
-        activeSourcesRef.current = activeSourcesRef.current.filter((s) => s !== source);
+        activeSourcesRef.current = activeSourcesRef.current.filter((item) => item !== entry);
       };
     } catch (err) {
-      console.warn("Audio decoding error (likely tiny fragment or flush race):", err);
+      console.warn("Studio audio decoding notice:", err);
     }
   }, [getPlaybackContext]);
 

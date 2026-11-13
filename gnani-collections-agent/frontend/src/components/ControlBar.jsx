@@ -23,11 +23,14 @@ export default function ControlBar({
   borrowers,
   scenarios,
   selectedScenario,
+  selectedVoice = "hi_madhur",
+  availableVoices = [],
   onToggleMic,
   onToggleBotMode,
   onToggleNoise,
   onSelectBorrower,
   onSelectScenario,
+  onSelectVoice,
   onTriggerScenario,
   onResetSession
 }) {
@@ -78,6 +81,30 @@ export default function ControlBar({
               {borrowers.map((b) => (
                 <option key={b.borrower_id} value={b.borrower_id} className="bg-slate-900 text-slate-200">
                   {b.name} (Overdue: ₹{b.overdue_amount.toLocaleString()})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Studio Neural Voice Selector */}
+        <div className="flex items-center gap-2 bg-slate-900/90 border border-cyan-900/50 px-3 py-1.5 rounded-xl shadow-sm">
+          <Volume2 className="w-4 h-4 text-purple-400" />
+          <div className="flex flex-col text-left">
+            <span className="text-[9px] uppercase tracking-wider text-purple-300 font-bold">Neural Voice Profile</span>
+            <select
+              value={selectedVoice}
+              onChange={(e) => onSelectVoice && onSelectVoice(e.target.value)}
+              className="bg-transparent text-xs font-bold text-slate-100 outline-none cursor-pointer pr-2"
+            >
+              {(availableVoices.length > 0 ? availableVoices : [
+                { id: "hi_madhur", name: "Madhur (Warm Hindi/Hinglish Male)" },
+                { id: "hi_swara", name: "Swara (Expressive Hindi/Hinglish Female)" },
+                { id: "en_neerja", name: "Neerja (Professional Indian English Female)" },
+                { id: "en_prabhat", name: "Prabhat (Executive Indian English Male)" }
+              ]).map((v) => (
+                <option key={v.id} value={v.id} className="bg-slate-900 text-slate-200 font-medium">
+                  {v.name}
                 </option>
               ))}
             </select>
@@ -194,3 +221,4 @@ export default function ControlBar({
     </header>
   );
 }
+

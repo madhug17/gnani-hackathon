@@ -127,3 +127,4 @@ BFSI_TOOL_DEFINITIONS = [
     offer_split_emi_plan,
     apply_late_fee_waiver
 ]
+

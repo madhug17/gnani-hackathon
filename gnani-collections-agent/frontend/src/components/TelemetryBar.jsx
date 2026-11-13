@@ -159,3 +159,4 @@ export default function TelemetryBar({ metrics, emotionData, currentState }) {
     </div>
   );
 }
+

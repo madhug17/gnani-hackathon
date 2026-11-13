@@ -148,3 +148,4 @@ class BargeInDetector:
                 self.speech_start_time = None
 
         return False, None
+
